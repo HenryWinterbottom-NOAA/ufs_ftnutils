@@ -15,17 +15,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301 USA
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/ftnutils)
-set (LLIBS "m")
-set (TARGET "ftnutils")
-set ( FSON "/ufs_ftnutils/sorc/fson/build" )
-
-add_definitions ( ${DEFINITIONS} )
-include_directories ( ${FSON} )
-set ( LLIBS "/usr/local/lib/libfson.so" )
-
+include_directories ( ${CMAKE_SOURCE_DIR}/ftnutils )
+set ( LLIBS "m" )
+set ( TARGET "ftnutils" )
 file (GLOB f90_objs *.F90)
-set (F90_OBJS ${f90_objs})
-add_library (ftnutils SHARED ${f90_objs})
-#target_link_libraries ( ${EXECUTABLE} ${LIBS} )
-install (TARGETS ${TARGET} DESTINATION ${INSTALL_PATH})
+set ( CMAKE_Fortran_FLAGS "-O3 -g" )
+set ( F90_OBJS ${f90_objs} )
+add_library ( ftnutils SHARED ${f90_objs} )
+target_include_directories ( ftnutils PRIVATE ${CMAKE_UFS_FTNUTILS_PATH}/include )
+install ( TARGETS ${TARGET} DESTINATION ${INSTALL_PATH} )
