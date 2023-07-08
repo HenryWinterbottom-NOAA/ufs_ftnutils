@@ -15,12 +15,20 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301 USA
 
-include_directories ( ${CURRENT_SOURCE_DIR}/fson )
-set ( LLIBS "m" )
-set ( TARGET "fson" )
-set ( CMAKE_Fortran_FLAGS "-O3 -g" )
-file ( GLOB f90_objs *.f90 )
-set ( F90_OBJS ${f90_objs} )
-add_library ( fson SHARED ${f90_objs} )
-target_include_directories ( fson PRIVATE ${CMAKE_UFS_FTNUTILS_PATH}/include )
+cmake_minimum_required ( VERSION 3.16 )
+project ( UFS_FTNUTILS )
+enable_language ( Fortran C )
+
+set ( CMAKE_UFS_FTNUTILS_PATH ${CMAKE_CURRENT_SOURCE_DIR} )
+set ( CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_UFS_FTNUTILS_PATH}/include )
+set ( INSTALL_PATH ${CMAKE_UFS_FTNUTILS_PATH}/lib )
+set ( CMAKE_Fortran_FLAGS_RELEASE -g -fcheck=all -fbacktrace -Wall )
+set ( CMAKE_Fortran_FLAGS_DEBUG "-O0" )
+
+add_subdirectory ( ${CMAKE_UFS_FTNUTILS_PATH}/sorc/fson )
+add_subdirectory ( ${CMAKE_UFS_FTNUTILS_PATH}/sorc/slint )
+add_subdirectory ( ${CMAKE_UFS_FTNUTILS_PATH}/sorc/ftnutils )
+
+set ( DIRECTORY_PERMISSIONS "OWNER_WRITE" "OWNER_READ" "OWNER_EXECUTE" "GROUP_READ" "GROUP_EXECUTE" "WORLD_READ" "WORLD_EXECUTE" )
+install ( DIRECTORY DESTINATION ${INSTALL_PATH} DIRECTORY_PERMISSIONS ${DIRECTORY_PERMISSIONS} )
 install ( TARGETS ${TARGET} DESTINATION ${INSTALL_PATH} )
