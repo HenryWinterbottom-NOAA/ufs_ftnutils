@@ -1,0 +1,102 @@
+!! (C) Copyright 2023 - Henry R. Winterbottom
+
+!! This library is free software; you can redistribute it and/or
+!! modify it under the terms of the GNU Lesser General Public License
+!! as published by the Free Software Foundation; either version 2.1 of
+!! the License, or (at your option) any later version.
+
+!! This library is distributed in the hope that it will be useful, but
+!! WITHOUT ANY WARRANTY; without even the implied warranty of
+!! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+!! Lesser General Public License for more details.
+
+!! You should have received a copy of the GNU Lesser General Public
+!! License along with this library; if not, write to the Free Software
+!! Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+!! 02110-1301 USA
+
+!> @brief: ftnutils_json
+!! @details: This module contains the base-class object for the JSON
+!!           API.
+!! @author: Henry R. Winterbottom
+!! @date: 05 July 2023
+!! @version: 0.0.1
+!! @license: LGPL v2.1
+module ftnutils_json
+  use fson
+  use fson_value_m
+  use ftnutils_errors
+  use ftnutils_kinds, only: maxchar
+  use ftnutils_log, only: Logger
+  implicit none
+  private
+
+  !> @brief: Data structure containing attributes collected, or to be
+  !!         collected, from a JSON formatted file.
+  type, private :: json_info_struct
+     type(fson_value), pointer :: json_file
+     character(len=maxchar) :: key
+     character(len=500) :: filename
+     integer :: nrecs
+  end type json_info_struct
+
+  !> @brief: The JSON base-class object.
+  type, public :: JSON
+     type(Logger) :: logcls
+     type(json_info_struct) :: info
+   contains
+     procedure, public :: init
+     procedure, public :: read_int
+     procedure, public :: read_str
+  end type JSON
+contains
+  
+  !> @brief: Initializes the JSON file object and determines the total
+  !!         number of JSON records.
+  subroutine init(this)
+    class(JSON), intent(inout) :: this
+    character(len=500) :: msg
+   
+    this%info%json_file => fson_parse(trim(adjustl(this%info%filename)))
+    this%info%nrecs = fson_value_count(this%info%json_file)
+    write(msg, 500) this%info%nrecs, trim(adjustl(this%info%filename))
+    call this%logcls%info(msg=msg)    
+500 format("Found ", i3, " JSON record(s) in file ", a, ".")
+  end subroutine init
+  
+  !> @brief: Reads a JSON-formatted file path and returns the
+  !!         contents.
+  !! @returns: attrval
+  !!
+  !!    - The integer type value for the respective JSON attribute key
+  !!      `attrkey`.
+  function read_int(this) result(attrval)
+    class(JSON), intent(inout) :: this
+    character(len=500) :: msg
+    integer :: attrval
+
+    call fson_get(this%info%json_file, this%info%key, attrval)
+    write(msg, 500) trim(adjustl(this%info%filename)), &
+         trim(adjustl(this%info%key)), attrval
+    call this%logcls%info(msg=msg)
+500 format("JSON-formatted file path ", a, " key ", a, " value is ", i10, ".")    
+  end function read_int
+    
+  !> @brief: Reads a JSON formatted file path and returns the
+  !!         contents.
+  !! @returns: attrval
+  !!
+  !!    - The string type value for the respective JSON attribute key
+  !!      `attrkey`.
+  function read_str(this) result(attrval)
+    class(JSON), intent(in) :: this
+    character(len=500) :: msg
+    character(len=maxchar) :: attrval
+    
+    call fson_get(this%info%json_file, this%info%key, attrval)
+    write(msg, 500) trim(adjustl(this%info%filename)), &
+         trim(adjustl(this%info%key)), trim(adjustl(attrval))
+    call this%logcls%info(msg=msg)
+500 format("JSON-formatted file path ", a, " key ", a, " value is ", a, ".")
+  end function read_str
+end module ftnutils_json
