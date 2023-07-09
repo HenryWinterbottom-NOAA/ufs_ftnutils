@@ -15,8 +15,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301 USA
 
-include_directories ( ${CMAKE_SOURCE_DIR}/ftnutils )
-set ( LLIBS "m" )
+include_directories ( ${CMAKE_SOURCE_DIR}/ftnutils ${NETCDF}/include )
+set ( LLIBS "m" ${NETCDF}/lib -lnetcdf -lnetcdff)
 set ( TARGET "ftnutils" )
 file (GLOB f90_objs *.F90)
 set ( CMAKE_Fortran_FLAGS "-O3 -g" )
