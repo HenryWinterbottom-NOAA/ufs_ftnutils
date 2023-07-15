@@ -31,7 +31,7 @@ module ftnutils_errors
   type, public :: Error
      type(Logger) :: logobj
    contains
-     procedure, private :: raise
+     procedure, public :: raise
   end type Error
 contains
 
