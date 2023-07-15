@@ -32,17 +32,24 @@ module ftnutils_netcdf
   public :: ncread
   public :: ncreaddim
   public :: ncvardims
+  public :: ncwrite
+  public :: ncwritedef
   
   interface ncread
-     module procedure read_scalar_double
-     module procedure read_scalar_single
      module procedure read_arr1d_double
      module procedure read_arr1d_single
      module procedure read_arr2d_double
      module procedure read_arr2d_single
      module procedure read_arr3d_double
      module procedure read_arr3d_single
+     module procedure read_scalar_double
+     module procedure read_scalar_single
   end interface ncread
+  
+  interface ncwrite
+     module procedure write_scalar_double
+     module procedure write_scalar_single
+  end interface ncwrite
   
   type, public :: NCDATA
      type(Logger) :: logcls
@@ -60,6 +67,19 @@ module ftnutils_netcdf
      procedure, public :: ncreaddim
   end type NCDATA
 contains
+
+  !> @brief: Closes an open netCDF file object.
+  !!
+  !! @params[inout]: this
+  !!
+  !!    - The respective netCDF class.
+  subroutine ncclose(this)
+    class(NCDATA), intent(inout) :: this
+    character(len=500) :: msg
+
+    this%ncstatus = nf90_close(this%ncfileid)
+    if (this%ncstatus /= 0) call ncerror(nccls=this)
+  end subroutine ncclose
 
   !> @brief: Defines the integer dimension variable identification key
   !!         within an open netCDF-formatted file path.
@@ -98,6 +118,32 @@ contains
     call errcls%raise(msg=msg)
 500 format("NetCDF failed with error", 1x, a, 1x, ". Aborting!!!")
   end subroutine ncerror
+  
+  !> @brief: Defines/opens a netCDF file object.
+  !!
+  !! @params[inout]: this
+  !!
+  !!    - The respective netCDF class.
+  subroutine ncopen(this)
+    class(NCDATA), intent(inout) :: this
+    character(len=maxchar) :: filename
+    character(len=500) :: msg
+    
+    filename = this%ncfile    
+    if(this%read) then
+       this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_nowrite, &
+            this%ncfileid)
+    elseif(this%read_write) then
+       this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_write, &
+            this%ncfileid)
+    elseif(this%write) then
+       this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_clobber, &
+            this%ncfileid)
+    else
+       call this%logcls%error(msg=msg)
+    end if
+    if (this%ncstatus /= 0) call ncerror(nccls=this)
+  end subroutine ncopen
 
   !> @brief: Reads dimension variable value.
   !!
@@ -177,6 +223,8 @@ contains
     call nccls%logcls%info(msg=msg)
 500 format("netCDF variable", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
   end subroutine ncvarid
+
+  !
 
   !> @brief: Read a double-precision 1-dimensional variable array.
   !!
@@ -362,42 +410,5 @@ contains
     if (nccls%ncstatus /= 0) call ncerror(nccls=nccls) 
   end subroutine read_scalar_single
 
-  !> @brief: Closes an open netCDF file object.
-  !!
-  !! @params[inout]: this
-  !!
-  !!    - The respective netCDF class.
-  subroutine ncclose(this)
-    class(NCDATA), intent(inout) :: this
-    character(len=500) :: msg
 
-    this%ncstatus = nf90_close(this%ncfileid)
-    if (this%ncstatus /= 0) call ncerror(nccls=this)
-  end subroutine ncclose
-  
-  !> @brief: Defines/opens a netCDF file object.
-  !!
-  !! @params[inout]: this
-  !!
-  !!    - The respective netCDF class.
-  subroutine ncopen(this)
-    class(NCDATA), intent(inout) :: this
-    character(len=maxchar) :: filename
-    character(len=500) :: msg
-    
-    filename = this%ncfile    
-    if(this%read) then
-       this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_nowrite, &
-            this%ncfileid)
-    elseif(this%read_write) then
-       this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_write, &
-            this%ncfileid)
-    elseif(this%write) then
-       this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_clobber, &
-            this%ncfileid)
-    else
-       call this%logcls%error(msg=msg)
-    end if
-    if (this%ncstatus /= 0) call ncerror(nccls=this)
-  end subroutine ncopen
 end module ftnutils_netcdf
