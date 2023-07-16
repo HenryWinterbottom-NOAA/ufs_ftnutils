@@ -21,12 +21,13 @@
 !! @date: 03 July 2023
 !! @version: 0.0.1
 !! @license: LGPL v2.1
+
 module ftnutils_kinds
   implicit none
   private
 
   !> @brief: The available data types object.
-  integer, public, parameter :: ibyte = selected_int_kind(1) 
+  integer, public, parameter :: ibyte = selected_int_kind(1)
   integer, public, parameter :: ishort = selected_int_kind(4)
   integer, public, parameter :: ilong = selected_int_kind(8)
   integer, public, parameter :: maxchar = 1024
