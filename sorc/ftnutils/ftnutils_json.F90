@@ -60,7 +60,7 @@ contains
       this%info%json_file => fson_parse(trim(adjustl(this%info%filename)))
       this%info%nrecs = fson_value_count(this%info%json_file)
       write (msg, 500) this%info%nrecs, trim(adjustl(this%info%filename))
-      call this%logcls%info(msg=msg)
+      call this%logcls%debug(msg=msg)
 500   format("Found ", i3, " JSON record(s) in file ", a, ".")
    end subroutine init
 
@@ -78,7 +78,7 @@ contains
       call fson_get(this%info%json_file, this%info%key, attrval)
       write (msg, 500) trim(adjustl(this%info%filename)), &
          trim(adjustl(this%info%key)), attrval
-      call this%logcls%info(msg=msg)
+      call this%logcls%debug(msg=msg)
 500   format("JSON-formatted file path ", a, " key ", a, " value is ", i10, ".")
    end function read_int
 
@@ -96,7 +96,7 @@ contains
       call fson_get(this%info%json_file, this%info%key, attrval)
       write (msg, 500) trim(adjustl(this%info%filename)), &
          trim(adjustl(this%info%key)), trim(adjustl(attrval))
-      call this%logcls%info(msg=msg)
+      call this%logcls%debug(msg=msg)
 500   format("JSON-formatted file path ", a, " key ", a, " value is ", a, ".")
    end function read_str
 end module ftnutils_json

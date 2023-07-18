@@ -29,11 +29,11 @@ module ftnutils_netcdf
    use ftnutils_log, only: Logger
    implicit none
    private
+   public :: destroy_ncvarinfo
+   public :: init_ncvarinfo
    public :: ncread
-   public :: ncreaddim
    public :: ncvardims
-   public :: ncwrite
-   public :: ncwritedef
+   public :: ncvarinfo_struct
 
    interface ncread
       module procedure read_arr1d_double
@@ -47,11 +47,12 @@ module ftnutils_netcdf
    end interface ncread
 
    interface ncwrite
-      module procedure write_scalar_double
-      module procedure write_scalar_single
+      !!# TODO
+      !!module procedure write_scalar_double
+      !!module procedure write_scalar_single
    end interface ncwrite
 
-   type, public :: NCDATA
+   type, public :: ncdata
       type(Logger) :: logcls
       character(len=maxchar) :: ncfile
       logical :: read = .false.
@@ -59,22 +60,66 @@ module ftnutils_netcdf
       logical :: write = .false.
       integer :: ncdimid
       integer :: ncfileid
-      integer :: ncvarid
+      integer :: ncvarid 
       integer :: ncstatus
    contains
       procedure, public :: ncclose
       procedure, public :: ncopen
       procedure, public :: ncreaddim
-   end type NCDATA
-contains
+      procedure, public :: ncwritedef
+   end type ncdata
 
+   type, public :: ncvarinfo_struct
+      character(len=maxchar), dimension(:), allocatable :: dimname
+      character(len=maxchar), dimension(:), allocatable :: varname
+      integer, dimension(:,:), allocatable :: vardimid
+      integer, dimension(:), allocatable :: varndim
+      integer, dimension(:), allocatable :: dimval
+      integer, dimension(:), allocatable :: dimid
+      integer, dimension(:), allocatable :: dtype
+      integer, dimension(:), allocatable :: varid
+      integer :: nattrs
+      integer :: ndims
+      integer :: nvars
+   end type ncvarinfo_struct
+ contains
+
+   !> @brief: # TODO
+   subroutine destroy_ncvarinfo(ncvarinfo)
+     type(ncvarinfo_struct) :: ncvarinfo
+
+     if (allocated(ncvarinfo%dtype)) deallocate(ncvarinfo%dtype) 
+     if (allocated(ncvarinfo%dimid)) deallocate(ncvarinfo%dimid)
+     if (allocated(ncvarinfo%dimname)) deallocate(ncvarinfo%dimname)
+     if (allocated(ncvarinfo%dimval)) deallocate(ncvarinfo%dimval) 
+     if (allocated(ncvarinfo%varname)) deallocate(ncvarinfo%varname)
+     if (allocated(ncvarinfo%vardimid)) deallocate(ncvarinfo%vardimid)     
+     if (allocated(ncvarinfo%varndim)) deallocate(ncvarinfo%varndim)  
+     if (allocated(ncvarinfo%varid)) deallocate(ncvarinfo%varid) 
+   end subroutine destroy_ncvarinfo
+   
+   !> @brief: # TODO
+   subroutine init_ncvarinfo(ncvarinfo)
+     type(ncvarinfo_struct) :: ncvarinfo
+
+     if (.not. allocated(ncvarinfo%dtype)) allocate(ncvarinfo%dtype(ncvarinfo%nvars)) 
+     if (.not. allocated(ncvarinfo%dimid)) allocate(ncvarinfo%dimid(ncvarinfo%ndims))
+     if (.not. allocated(ncvarinfo%dimname)) allocate(ncvarinfo%dimname(ncvarinfo%ndims))
+     if (.not. allocated(ncvarinfo%dimval)) allocate(ncvarinfo%dimval(ncvarinfo%ndims)) 
+     if (.not. allocated(ncvarinfo%varname)) allocate(ncvarinfo%varname(ncvarinfo%nvars)) 
+     if (.not. allocated(ncvarinfo%vardimid)) allocate(ncvarinfo%vardimid(ncvarinfo%nvars, &
+          ncvarinfo%ndims))
+     if (.not. allocated(ncvarinfo%varndim)) allocate(ncvarinfo%varndim(ncvarinfo%nvars))
+     if (.not. allocated(ncvarinfo%varid)) allocate(ncvarinfo%varid(ncvarinfo%nvars)) 
+   end subroutine init_ncvarinfo
+     
    !> @brief: Closes an open netCDF file object.
   !!
   !! @params[inout]: this
   !!
   !!    - The respective netCDF class.
    subroutine ncclose(this)
-      class(NCDATA), intent(inout) :: this
+      class(ncdata), intent(inout) :: this
       character(len=500) :: msg
 
       this%ncstatus = nf90_close(this%ncfileid)
@@ -92,14 +137,14 @@ contains
   !!
   !!    - The netCDF dimension variable name.
    subroutine ncdimid(nccls, dimname)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: dimname
       character(len=500) :: msg
 
       nccls%ncstatus = nf90_inq_dimid(nccls%ncfileid, trim(adjustl(dimname)), &
                                       nccls%ncdimid)
       write (msg, 500) trim(adjustl(dimname)), nccls%ncdimid
-      call nccls%logcls%info(msg=msg)
+      call nccls%logcls%debug(msg=msg)
 500   format("netCDF dimension variable", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
    end subroutine ncdimid
 
@@ -110,7 +155,7 @@ contains
   !!
   !!    - The netCDF object.
    subroutine ncerror(nccls)
-      class(NCDATA), intent(in) :: nccls
+      class(ncdata), intent(in) :: nccls
       type(Error) :: errcls
       character(len=maxchar) :: msg
 
@@ -125,10 +170,11 @@ contains
   !!
   !!    - The respective netCDF class.
    subroutine ncopen(this)
-      class(NCDATA), intent(inout) :: this
+      class(ncdata), intent(inout) :: this
       character(len=maxchar) :: filename
       character(len=500) :: msg
-
+      
+      !! Open the respective netCDF-formatted file accordingly.
       filename = this%ncfile
       if (this%read) then
          this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_nowrite, &
@@ -137,12 +183,12 @@ contains
          this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_write, &
                                    this%ncfileid)
       elseif (this%write) then
-         this%ncstatus = nf90_open(trim(adjustl(filename)), nf90_clobber, &
-                                   this%ncfileid)
+         this%ncstatus = nf90_create(trim(adjustl(filename)), nf90_clobber, &
+                                     this%ncfileid)
       else
          call this%logcls%error(msg=msg)
+         if (this%ncstatus /= 0) call ncerror(nccls=this)
       end if
-      if (this%ncstatus /= 0) call ncerror(nccls=this)
    end subroutine ncopen
 
    !> @brief: Reads dimension variable value.
@@ -159,7 +205,7 @@ contains
   !!
   !!    - The netCDF dimension variable value.
    subroutine ncreaddim(nccls, dimname, dimval)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: dimname
       character(len=500) :: msg
       integer, intent(out) :: dimval
@@ -171,7 +217,7 @@ contains
                                               len=dimval)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
       write (msg, 500) trim(adjustl(dimname)), nccls%ncdimid
-      call nccls%logcls%info(msg=msg)
+      call nccls%logcls%debug(msg=msg)
 500   format("netCDF dimension", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
    end subroutine ncreaddim
 
@@ -191,7 +237,7 @@ contains
   !!    - The number of dimensions for the specified variable
   !!      `varname`.
    subroutine ncvardims(nccls, varname, ndims)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       integer :: ndims
 
@@ -212,7 +258,7 @@ contains
   !!
   !!    - The netCDF variable name.
    subroutine ncvarid(nccls, varname)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       character(len=500) :: msg
 
@@ -220,12 +266,40 @@ contains
                                       nccls%ncvarid)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
       write (msg, 500) trim(adjustl(varname)), nccls%ncvarid
-      call nccls%logcls%info(msg=msg)
+      call nccls%logcls%debug(msg=msg)
 500   format("netCDF variable", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
    end subroutine ncvarid
 
-   !
+   !> @brief: # TODO
+   !!
+   subroutine ncwritedef(nccls, ncvarinfo)
+     class(ncdata), intent(inout) :: nccls
+     type(ncvarinfo_struct) :: ncvarinfo
+     character(len=500) :: msg
+     integer, dimension(:), allocatable :: dimid
+     integer :: i, j
 
+     !! Build the dimension attributes.
+     do i = 1, ncvarinfo%ndims
+        nccls%ncstatus = nf90_def_dim(nccls%ncfileid, &
+             trim(adjustl(ncvarinfo%dimname(i))), &
+             ncvarinfo%dimval(i), ncvarinfo%dimid(i))
+     end do
+
+     !! Build the variable arrays.
+     do i = 1, ncvarinfo%nvars        
+        nccls%ncstatus = nf90_def_var(nccls%ncfileid, &
+             trim(adjustl(ncvarinfo%varname(i))), &
+             ncvarinfo%dtype(i), ncvarinfo%vardimid(i, 1:ncvarinfo%varndim(i)), &
+             ncvarinfo%varid(i))
+        if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+        write(msg, 500) trim(adjustl(ncvarinfo%varname(i))), ncvarinfo%dtype(i), &
+             ncvarinfo%varid(i)
+     end do
+500  format("netCDF variable", 1x, a, 1x, "is datatype", 1x, i3, 1x, &
+          "and variable ID", 1x, i3, 1x, ".")
+   end subroutine ncwritedef
+   
    !> @brief: Read a double-precision 1-dimensional variable array.
   !!
   !! @params[inout]: nccls
@@ -240,7 +314,7 @@ contains
   !!
   !!    - The netCDF variable 1-dimensional array values.
    subroutine read_arr1d_double(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rdouble), dimension(:), intent(out) :: vararr
 
@@ -263,7 +337,7 @@ contains
   !!
   !!    - The netCDF variable 1-dimensional array values.
    subroutine read_arr1d_single(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rsingle), dimension(:), intent(out) :: vararr
 
@@ -286,7 +360,7 @@ contains
   !!
   !!    - The netCDF variable 2-dimensional array values.
    subroutine read_arr2d_double(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rdouble), dimension(:, :), intent(out) :: vararr
 
@@ -309,7 +383,7 @@ contains
   !!
   !!    - The netCDF variable 2-dimensional array values.
    subroutine read_arr2d_single(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rsingle), dimension(:, :), intent(out) :: vararr
 
@@ -332,7 +406,7 @@ contains
   !!
   !!    - The netCDF variable 3-dimensional array values.
    subroutine read_arr3d_double(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rdouble), dimension(:, :, :), intent(out) :: vararr
 
@@ -355,7 +429,7 @@ contains
   !!
   !!    - The netCDF variable 3-dimensional array values.
    subroutine read_arr3d_single(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rsingle), dimension(:, :, :), intent(out) :: vararr
 
@@ -378,7 +452,7 @@ contains
   !!
   !!    - The netCDF variable value(s).
    subroutine read_scalar_double(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rdouble), intent(out) :: vararr
 
@@ -401,7 +475,7 @@ contains
   !!
   !!    - The netCDF variable value(s).
    subroutine read_scalar_single(nccls, varname, vararr)
-      class(NCDATA), intent(inout) :: nccls
+      class(ncdata), intent(inout) :: nccls
       character(len=maxchar) :: varname
       real(rsingle), intent(out) :: vararr
 
