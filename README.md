@@ -2,15 +2,20 @@
 ![Linux](https://img.shields.io/badge/Linux-ubuntu%7Ccentos-lightgrey)
 
 [![Dependencies](https://img.shields.io/badge/Dependencies-fson-orange)](https://github.com/josephalevin/fson)
+[![](https://img.shields.io/badge/netCDF-orange)](https://github.com/Unidata)
 
 # Cloning
 
-This repository utilizes several sub-modules from various sources. To
-obtain the entire system, do as follows.
+To clone the repository do as follows.
 
 ~~~
-user@host:$ git clone --recursive https://github.com/HenryWinterbottom-NOAA/ufs_ftnutils
+user@host:$ git clone https://github.com/HenryWinterbottom-NOAA/ufs_ftnutils
 ~~~
+
+Note that neither the [`fson`](https://github.com/josephalevin/fson)
+or `slint` source codes are the property of this repository and it's
+author but are included such that the respective code bases compile
+using the format of the `ufs_ftnutils` package.
 
 # Building and Installing
 
@@ -20,14 +25,32 @@ Build the `ufs_ftnutils` as follows.
 user@host:$ cd /path/to/ufs_ftnutils
 user@host:$ mkdir -p /path/to/ufs_ftnutils/build
 user@host:$ cd /path/to/ufs_ftnutils/build
-user@host:$ cmake ../
+user@host:$ cmake -DNETCDF=/path/to/netcdf ../
 user@host:$ make
 user@host:$ make install
 ~~~
 
 If successful, the respective modules and libraries will be written to
 `/path/to/ufs_ftnutils/include` and `/path/to/ufs_ftnutils/lib`,
-respectively.
+respectively. They can then be linked as follows.
+
+~~~
+user@host:$ cd /path/to/dependent/application/source_code
+user@host:$ gfortran source_code.F90 -I/ufs_ftnutils/include -I/netcdf/include -L/ufs_ftnutils/libs -L/netcdf/lib -lfson -lftnutils -lnetcdf -lnetcdf 
+~~~
+
+In the above example, `/ufs_ftnutils/include` and `/ufs_ftnutils/lib`
+typically point to `/path/to/ufs_ftnutils/include` and
+`/path/to/ufs_ftnutils/lib`, respectively. The
+[`/netcdf`](https://downloads.unidata.ucar.edu/netcdf/) path is the
+path to the netCDF modules and libraries on the host platform. Note
+that the dependent packages must be compiled with the exact compiler
+version as `ufs_ftnutils` and netCDF.
+
+Finally, and ss suggested above, this code base is supported and
+tested against the [GNU
+Fortran](https://fortran-lang.org/learn/os_setup/install_gfortran/)
+compiler. Compliance with other Fortran compilers is not guaranteed.
 
 # Forking
 
