@@ -34,6 +34,7 @@ module ftnutils_netcdf
    public :: ncread
    public :: ncvardims
    public :: ncvarinfo_struct
+   public :: ncwrite
 
    interface ncread
       module procedure read_arr1d_double
@@ -47,9 +48,10 @@ module ftnutils_netcdf
    end interface ncread
 
    interface ncwrite
-      !!# TODO
-      !!module procedure write_scalar_double
-      !!module procedure write_scalar_single
+      module procedure write_arr1d_double
+      module procedure write_arr1d_single
+      module procedure write_arr2d_double
+      module procedure write_arr2d_single
    end interface ncwrite
 
    type, public :: ncdata
@@ -107,8 +109,8 @@ module ftnutils_netcdf
      if (.not. allocated(ncvarinfo%dimname)) allocate(ncvarinfo%dimname(ncvarinfo%ndims))
      if (.not. allocated(ncvarinfo%dimval)) allocate(ncvarinfo%dimval(ncvarinfo%ndims)) 
      if (.not. allocated(ncvarinfo%varname)) allocate(ncvarinfo%varname(ncvarinfo%nvars)) 
-     if (.not. allocated(ncvarinfo%vardimid)) allocate(ncvarinfo%vardimid(ncvarinfo%nvars, &
-          ncvarinfo%ndims))
+     if (.not. allocated(ncvarinfo%vardimid)) &
+          allocate(ncvarinfo%vardimid(ncvarinfo%nvars, ncvarinfo%ndims))
      if (.not. allocated(ncvarinfo%varndim)) allocate(ncvarinfo%varndim(ncvarinfo%nvars))
      if (.not. allocated(ncvarinfo%varid)) allocate(ncvarinfo%varid(ncvarinfo%nvars)) 
    end subroutine init_ncvarinfo
@@ -272,12 +274,18 @@ module ftnutils_netcdf
 
    !> @brief: # TODO
    !!
+   !! @params[inout]: nccls
+   !!
+   !!    - An open netCDF object.
+   !!
+   !! @params[in]: ncvarinfo
+   !!
+   !!    - A `ncvarinfo_struct` variable.
    subroutine ncwritedef(nccls, ncvarinfo)
      class(ncdata), intent(inout) :: nccls
      type(ncvarinfo_struct) :: ncvarinfo
      character(len=500) :: msg
-     integer, dimension(:), allocatable :: dimid
-     integer :: i, j
+     integer :: i
 
      !! Build the dimension attributes.
      do i = 1, ncvarinfo%ndims
@@ -296,6 +304,7 @@ module ftnutils_netcdf
         write(msg, 500) trim(adjustl(ncvarinfo%varname(i))), ncvarinfo%dtype(i), &
              ncvarinfo%varid(i)
      end do
+     nccls%ncstatus = nf90_enddef(nccls%ncfileid)
 500  format("netCDF variable", 1x, a, 1x, "is datatype", 1x, i3, 1x, &
           "and variable ID", 1x, i3, 1x, ".")
    end subroutine ncwritedef
@@ -475,13 +484,58 @@ module ftnutils_netcdf
   !!
   !!    - The netCDF variable value(s).
    subroutine read_scalar_single(nccls, varname, vararr)
-      class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rsingle), intent(out) :: vararr
-
-      call ncvarid(nccls=nccls, varname=varname)
-      nccls%ncstatus = nf90_get_var(nccls%ncfileid, nccls%ncvarid, vararr)
-      if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+     class(ncdata), intent(inout) :: nccls
+     character(len=maxchar) :: varname
+     real(rsingle), intent(out) :: vararr
+     
+     call ncvarid(nccls=nccls, varname=varname)
+     nccls%ncstatus = nf90_get_var(nccls%ncfileid, nccls%ncvarid, vararr)
+     if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_scalar_single
 
+   !> @brief: # TODO
+   subroutine write_arr1d_double(nccls, varname, vararr)
+     class(ncdata), intent(inout) :: nccls
+     character(len=maxchar) :: varname
+     real(rdouble), dimension(:) :: vararr
+
+     call ncvarid(nccls=nccls, varname=varname)
+     nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+     if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+   end subroutine write_arr1d_double
+   
+   !> @brief: # TODO
+   subroutine write_arr1d_single(nccls, varname, vararr)
+     class(ncdata), intent(inout) :: nccls
+     character(len=maxchar) :: varname
+     real(rsingle), dimension(:) :: vararr
+
+     call ncvarid(nccls=nccls, varname=varname)
+     nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+     if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+   end subroutine write_arr1d_single
+   
+   !> @brief: # TODO
+   subroutine write_arr2d_double(nccls, varname, vararr)
+     class(ncdata), intent(inout) :: nccls
+     character(len=maxchar) :: varname
+     real(rdouble), dimension(:,:) :: vararr
+
+     call ncvarid(nccls=nccls, varname=varname)
+     nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+     if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+   end subroutine write_arr2d_double
+   
+   !> @brief: # TODO
+   subroutine write_arr2d_single(nccls, varname, vararr)
+     class(ncdata), intent(inout) :: nccls
+     character(len=maxchar) :: varname
+     real(rsingle), dimension(:,:) :: vararr
+
+     call ncvarid(nccls=nccls, varname=varname)
+     nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+     if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+   end subroutine write_arr2d_single
+
+   
 end module ftnutils_netcdf
