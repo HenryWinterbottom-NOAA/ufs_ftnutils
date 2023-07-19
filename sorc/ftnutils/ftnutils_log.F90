@@ -23,11 +23,11 @@
 !! @version: 0.0.1
 !! @license: LGPL v2.1
 module ftnutils_log
-  use ftnutils_kinds, only: maxchar
-  implicit none
-  private
+   use ftnutils_kinds, only: maxchar
+   implicit none
+   private
 
-  !> @brief: The Logger base-class log information object.
+   !> @brief: The Logger base-class log information object.
   !! @params[in]: msg:
   !!    - The message to be passed to the object for the logger API;
   !!      this string has not yet been formatted for date and
@@ -42,160 +42,156 @@ module ftnutils_log
   !!      logger instance.
   !!
   !! @details: The `debug` type messages will only be printed if the
-  !!           environment variable `DEBUG` is set to `true`.
+  !!           environment variable `DEBUG` is set to `true` of
+  !!           `True`.
   !!
-  !! @details: The timezone if determined from the local platform; it
-  !!           maybe defined differently if desired in accordance with
-  !!           the methods specified at # TODO
-  type, private :: LoggerInfo
-     character(len=maxchar) :: msg
-     character(len=maxchar) :: msgstr
-     character(len=10) :: type
-  end type LoggerInfo
+  !! @details: The timezone if determined from the local platform.
+   type, private :: LoggerInfo
+      character(len=maxchar) :: msg
+      character(len=maxchar) :: msgstr
+      character(len=10) :: type
+   end type LoggerInfo
 
-  !> @brief: The Logger base-class object.
-  type, public :: Logger
+   !> @brief: The Logger base-class object.
+   type, public :: Logger
    contains
-     procedure, private :: build_msgstr
-     procedure, private :: datetime
-     procedure, private :: write_log
-     procedure, public :: debug
-     procedure, public :: error
-     procedure, public :: info
-     procedure, public :: status
-     procedure, public :: warn
-  end type Logger
+      procedure, private :: build_msgstr
+      procedure, private :: datetime
+      procedure, private :: write_log
+      procedure, public :: debug
+      procedure, public :: error
+      procedure, public :: info
+      procedure, public :: status
+      procedure, public :: warn
+   end type Logger
 contains
 
-  !> @brief: Builds the logger object message string including the
+   !> @brief: Builds the logger object message string including the
   !!         message type (`type`) and the current timestamp string
   !!         formatted as `%Y-%m-%d %H:%M:%S` assuming the POSIX
   !!         convention.
-  
+
   !! @param[in]: msg:
   !!    - The message passed to the logger object.
-  
+
   !! @param[in]: type: The message type (e.g., `INFO`, `WARNING`,
   !!             etc.,).
   !! @returns: msgstr: The formatted message string.
-  function build_msgstr(this, type, msg) result(msgstr)
-    class(Logger) :: this
-    character(len=maxchar), intent(in) :: msg
-    character(len=10), intent(in) :: type
-    character(len=maxchar) :: msgstr
-    character(len=19) :: datestr
-    
-    datestr = this%datetime()
-    write (msgstr, 500) trim(adjustl(datestr)), trim(adjustl(type)), &
-         trim(adjustl(msg))
-500 format(a19, " :: ", a, " :: ", a)
-  end function build_msgstr
+   function build_msgstr(this, type, msg) result(msgstr)
+      class(Logger) :: this
+      character(len=maxchar), intent(in) :: msg
+      character(len=10), intent(in) :: type
+      character(len=maxchar) :: msgstr
+      character(len=19) :: datestr
 
-  !> @brief: Defines a formatted date and timestamp string; the current
+      datestr = this%datetime()
+      write (msgstr, 500) trim(adjustl(datestr)), trim(adjustl(type)), &
+         trim(adjustl(msg))
+500   format(a19, " :: ", a, " :: ", a)
+   end function build_msgstr
+
+   !> @brief: Defines a formatted date and timestamp string; the current
   !!         timestamp string formatted as `%Y-%m-%d %H:%M:%S`
-  !!         assuming the POSIX convention; note the timezone defaults
-  !!         to the timezone for the respective host platform but may
-  !!         be explicitly specified by defining `TZ` in the run-time
-  !!         environment.
+  !!         assuming the POSIX convention.
   !!
   !! @returns: datestr: The formatted date and timestamp string.
-  function datetime(this) result(datestr)
-    class(Logger) :: this
-    character(len=19) :: datestr
-    character(len=5) :: zone
-    integer, dimension(8) :: values
+   function datetime(this) result(datestr)
+      class(Logger) :: this
+      character(len=19) :: datestr
+      character(len=5) :: zone
+      integer, dimension(8) :: values
 
-    call date_and_time(VALUES=values, ZONE=zone)
-    write (datestr, 500) values(1), values(2), values(3), values(5), &
+      call date_and_time(VALUES=values, ZONE=zone)
+      write (datestr, 500) values(1), values(2), values(3), values(5), &
          values(6), values(7)
-500 format(i4.4, "-", i2.2, "-", i2.2, 1x, i2.2, ":", i2.2, ":", i2.2)
-  end function datetime
+500   format(i4.4, "-", i2.2, "-", i2.2, 1x, i2.2, ":", i2.2, ":", i2.2)
+   end function datetime
 
-  !> @brief: Writes `DEGUG` type logger messages.
+   !> @brief: Writes `DEGUG` type logger messages.
   !!
   !! @param[in]: msg:
   !!    - A string to accompany the logger message.
-  subroutine debug(this, msg)
-    class(Logger) :: this
-    type(LoggerInfo) :: loginfo
-    character(len=maxchar) :: msg
-    character(len=256), parameter :: envvar = "DEBUG"
-    character(len=256) :: envval
-    logical :: env_debug
-    integer :: status
+   subroutine debug(this, msg)
+      class(Logger) :: this
+      type(LoggerInfo) :: loginfo
+      character(len=maxchar) :: msg
+      character(len=256), parameter :: envvar = "DEBUG"
+      character(len=256) :: envval
+      logical :: env_debug
+      integer :: status
 
-    call get_environment_variable(envvar, envval)
-    if (envval(1:1) == "T") then
-       env_debug = .true.
-    else if (envval(1:1) == "t") then
-       env_debug = .true.
-    else
-       env_debug = .false.
-    end if
-    loginfo%type = "DEBUG"
-    loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
-    write (loginfo%msgstr, *) achar(27)//"[0;32m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
-    if (env_debug) call this%write_log(loginfo=loginfo)
-  end subroutine debug
-   
-  !> @brief: Writes `ERROR` type logger messages.
+      call get_environment_variable(envvar, envval)
+      if (envval(1:1) == "T") then
+         env_debug = .true.
+      else if (envval(1:1) == "t") then
+         env_debug = .true.
+      else
+         env_debug = .false.
+      end if
+      loginfo%type = "DEBUG"
+      loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
+      write (loginfo%msgstr, *) achar(27)//"[0;32m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
+      if (env_debug) call this%write_log(loginfo=loginfo)
+   end subroutine debug
+
+   !> @brief: Writes `ERROR` type logger messages.
   !!
   !! @param[in]: msg:
   !!    - A string to accompany the logger message.
-  subroutine error(this, msg)
-    class(Logger) :: this
-    type(LoggerInfo) :: loginfo
-    character(len=maxchar) :: msg
+   subroutine error(this, msg)
+      class(Logger) :: this
+      type(LoggerInfo) :: loginfo
+      character(len=maxchar) :: msg
 
-    loginfo%type = "ERROR"
-    loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
-    write (loginfo%msgstr, *) achar(27)//"[48;5;196m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
-    call this%write_log(loginfo=loginfo)
-  end subroutine error
+      loginfo%type = "ERROR"
+      loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
+      write (loginfo%msgstr, *) achar(27)//"[48;5;196m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
+      call this%write_log(loginfo=loginfo)
+   end subroutine error
 
-  !> @brief: Writes `INFO` type logger messages.
+   !> @brief: Writes `INFO` type logger messages.
   !! @param[in]: msg:
   !!    - A string to accompany the logger message.
-  subroutine info(this, msg)
-    class(Logger) :: this
-    type(LoggerInfo) :: loginfo
-    character(len=maxchar) :: msg
+   subroutine info(this, msg)
+      class(Logger) :: this
+      type(LoggerInfo) :: loginfo
+      character(len=maxchar) :: msg
 
-    loginfo%type = "INFO"
-    loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
-    write (loginfo%msgstr, *) achar(27)//"[38;5;247m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
-    call this%write_log(loginfo=loginfo)
-  end subroutine info
+      loginfo%type = "INFO"
+      loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
+      write (loginfo%msgstr, *) achar(27)//"[38;5;247m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
+      call this%write_log(loginfo=loginfo)
+   end subroutine info
 
-  !> @brief: Writes `STATUS` type logger messages.
+   !> @brief: Writes `STATUS` type logger messages.
   !! @param[in]: msg:
   !!    - A string to accompany the logger message.
-  subroutine status(this, msg)
-    class(Logger) :: this
-    type(LoggerInfo) :: loginfo
-    character(len=maxchar) :: msg
-    
-    loginfo%type = "STATUS"
-    loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
-    write (loginfo%msgstr, *) achar(27)//"[0;36m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
-    call this%write_log(loginfo=loginfo)
-  end subroutine status
+   subroutine status(this, msg)
+      class(Logger) :: this
+      type(LoggerInfo) :: loginfo
+      character(len=maxchar) :: msg
 
-  !> @brief: Writes `WARNING` type logger messages.
+      loginfo%type = "STATUS"
+      loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
+      write (loginfo%msgstr, *) achar(27)//"[0;36m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
+      call this%write_log(loginfo=loginfo)
+   end subroutine status
+
+   !> @brief: Writes `WARNING` type logger messages.
   !! @param[in]: msg:
   !!    - A string to accompany the logger message.
-  subroutine warn(this, msg)
-    class(Logger) :: this
-    type(LoggerInfo) :: loginfo
-    character(len=maxchar) :: msg
-    
-    loginfo%type = "WARNING"
-    loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
-    write (loginfo%msgstr, *) achar(27)//"[0;93m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
-    call this%write_log(loginfo=loginfo)
-  end subroutine warn
+   subroutine warn(this, msg)
+      class(Logger) :: this
+      type(LoggerInfo) :: loginfo
+      character(len=maxchar) :: msg
 
-  !> @brief: Writes the logger message, and it's associated
+      loginfo%type = "WARNING"
+      loginfo%msg = this%build_msgstr(type=loginfo%type, msg=msg)
+      write (loginfo%msgstr, *) achar(27)//"[0;93m "//trim(adjustl(loginfo%msg))//achar(27)//"[0m"
+      call this%write_log(loginfo=loginfo)
+   end subroutine warn
+
+   !> @brief: Writes the logger message, and it's associated
   !!         attributes, to `stdout`.
   !! @params[in]: loginfo:
   !!    - A LoggerInfo object containing the logger message and
