@@ -21,7 +21,6 @@
 !! @date: 03 July 2023
 !! @version: 0.0.1
 !! @license: LGPL v2.1
-
 module ftnutils_kinds
   implicit none
   private
