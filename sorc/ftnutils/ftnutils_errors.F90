@@ -15,7 +15,7 @@
 !! Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 !! 02110-1301 USA
 
-!> @brief: ftnutils_errors
+!> @file: ftnutils_errors.F90
 !! @details: This module contains the base-class object for all
 !!           exception classes.
 !! @author: Henry R. Winterbottom
@@ -23,27 +23,27 @@
 !! @version: 0.0.1
 !! @license: LGPL v2.1
 module ftnutils_errors
-  use ftnutils_log, only: Logger
-  implicit none
-  private
+   use ftnutils_kinds, only: maxchar
+   use ftnutils_log, only: Logger
+   implicit none
+   private
 
-  !> @brief: The Error base-class object.
-  type, public :: Error
-     type(Logger) :: logobj
+   !> @brief: The Error base-class object.
+   type, public :: Error
+      type(Logger) :: logobj
    contains
-     procedure, private :: raise
-  end type Error
+      procedure, public :: raise
+   end type Error
 contains
 
-  !> @brief: Raises the respective exception.
+   !> @brief: Raises the respective exception.
   !! @param: msg
-  !!
   !!    - The string to accompany the respective exception.
-  subroutine raise(this, msg)
-    class(Error) :: this
-    character(len=500) :: msg
+   subroutine raise(this, msg)
+      class(Error) :: this
+      character(len=maxchar) :: msg
 
-    call this%logobj%error(msg=msg)
-    stop
-  end subroutine raise
+      call this%logobj%error(msg=msg)
+      stop
+   end subroutine raise
 end module ftnutils_errors

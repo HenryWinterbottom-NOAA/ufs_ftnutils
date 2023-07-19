@@ -15,21 +15,17 @@
 !! Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 !! 02110-1301 USA
 
-!> @brief: ftnutils_kinds
-!! @details: This module contains supported data types.
+!> @file: ftnutils_constants.F90
+!! @details: This module contains constant variable values.
 !! @author: Henry R. Winterbottom
 !! @date: 03 July 2023
 !! @version: 0.0.1
 !! @license: LGPL v2.1
-module ftnutils_kinds
+module ftnutils_constants
+   use ftnutils_kinds, only: rdouble, rsingle
    implicit none
-   private
 
-   !> @brief: The available data types object.
-   integer, public, parameter :: ibyte = selected_int_kind(1)
-   integer, public, parameter :: ishort = selected_int_kind(4)
-   integer, public, parameter :: ilong = selected_int_kind(8)
-   integer, public, parameter :: maxchar = 1024
-   integer, public, parameter :: rsingle = selected_real_kind(6)
-   integer, public, parameter :: rdouble = selected_real_kind(15)
-end module ftnutils_kinds
+   real(rdouble), parameter :: pi = acos(-1.0)
+   real(rdouble), parameter :: deg2rad = pi/180.0_rdouble
+   real(rdouble), parameter :: rad2deg = 1.0_rdouble/deg2rad
+end module ftnutils_constants
