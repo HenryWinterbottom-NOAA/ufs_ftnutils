@@ -5,6 +5,8 @@
 [![Dependencies](https://img.shields.io/badge/Dependencies-fson-orange)](https://github.com/josephalevin/fson)
 [![](https://img.shields.io/badge/netCDF-orange)](https://github.com/Unidata)
 
+[![Docker Images](https://github.com/HenryWinterbottom-NOAA/ufs_ftnutils/actions/workflows/containers.yaml/badge.svg)](https://github.com/HenryWinterbottom-NOAA/ufs_ftnutils/actions/workflows/containers.yaml)
+
 # Cloning
 
 To clone the repository do as follows.
