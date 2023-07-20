@@ -1,5 +1,6 @@
 [![License](https://img.shields.io/badge/License-LGPL_v2.1-black)](https://github.com/HenryWinterbottom-NOAA/ufs_pyutils/blob/develop/LICENSE)
 ![Linux](https://img.shields.io/badge/Linux-ubuntu%7Ccentos-lightgrey)
+[![Disclaimer](https://img.shields.io/badge/Disclaimer-Disclaimer-yellow)](https://github.com/HenryWinterbottom/ufs_ftnutils/blob/develop/DISCLAIMER.md)
 
 [![Dependencies](https://img.shields.io/badge/Dependencies-fson-orange)](https://github.com/josephalevin/fson)
 [![](https://img.shields.io/badge/netCDF-orange)](https://github.com/Unidata)
@@ -11,11 +12,6 @@ To clone the repository do as follows.
 ~~~
 user@host:$ git clone https://github.com/HenryWinterbottom-NOAA/ufs_ftnutils
 ~~~
-
-Note that neither the [`fson`](https://github.com/josephalevin/fson)
-or `slint` source codes are the property of this repository and it's
-author but are included such that the respective code bases compile
-using the format of the `ufs_ftnutils` package.
 
 # Building and Installing
 
@@ -36,7 +32,7 @@ respectively. They can then be linked as follows.
 
 ~~~
 user@host:$ cd /path/to/dependent/application/source_code
-user@host:$ gfortran source_code.F90 -I/ufs_ftnutils/include -I/netcdf/include -L/ufs_ftnutils/libs -L/netcdf/lib -lfson -lftnutils -lnetcdf -lnetcdf 
+user@host:$ /path/to/gfortran source_code.F90 -I/ufs_ftnutils/include -I/netcdf/include -L/ufs_ftnutils/libs -L/netcdf/lib -lfson -lftnutils -lnetcdf -lnetcdf 
 ~~~
 
 In the above example, `/ufs_ftnutils/include` and `/ufs_ftnutils/lib`
@@ -47,8 +43,18 @@ path to the netCDF modules and libraries on the host platform. Note
 that the dependent packages must be compiled with the exact compiler
 version as `ufs_ftnutils` and netCDF.
 
-Finally, and ss suggested above, this code base is supported and
-tested against the [GNU
+# Docker Images
+
+A Docker image containing the latest `ufs_ftnuils` package, can be
+gathered as follows.
+
+~~~
+user@host:$ /path/to/docker pull noaaufsrnr/ubuntu20.04.ufs_ftnutils:latest
+~~~
+
+# Known Issues
+
+This code base is supported and tested against the [GNU
 Fortran](https://fortran-lang.org/learn/os_setup/install_gfortran/)
 compiler. Compliance with other Fortran compilers is not guaranteed.
 
