@@ -40,6 +40,6 @@ jobs:
           path: ufs_tools
       - name: Build the Docker images.
         run: >
-          cd ${GITHUB_WORKSPACE}/ufs_ftnutils/Docker
+          cd ${GITHUB_WORKSPACE}/Docker
           
-          $(which docker) build -f ${GITHUB_WORKSPACE}/ufs_ftnutils/Docker/ubuntu20.04.ufs_ftnutils.dockerfile --tag ubuntu20.04.ufs_ftnutils.containers:latest .
+          $(which docker) build -f ${GITHUB_WORKSPACE}/Docker/ubuntu20.04.ufs_ftnutils.dockerfile --tag ubuntu20.04.ufs_ftnutils.containers:latest .
