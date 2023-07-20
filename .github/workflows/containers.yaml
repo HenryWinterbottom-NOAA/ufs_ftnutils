@@ -37,9 +37,9 @@ jobs:
       - name: "Checkout `ufs_ftnutils.`"
         uses: actions/checkout@v2
         with:
-          path: ufs_tools
+          path: ufs_ftnutils
       - name: Build the Docker images.
         run: >
-          cd ${GITHUB_WORKSPACE}/Docker
+          cd ${GITHUB_WORKSPACE}/ufs_ftnutils/Docker
           
-          $(which docker) build -f ${GITHUB_WORKSPACE}/Docker/ubuntu20.04.ufs_ftnutils.dockerfile --tag ubuntu20.04.ufs_ftnutils.containers:latest .
+          $(which docker) build -f ${GITHUB_WORKSPACE}/ufs_ftnutils/Docker/ubuntu20.04.ufs_ftnutils.dockerfile --tag ubuntu20.04.ufs_ftnutils.containers:latest .
