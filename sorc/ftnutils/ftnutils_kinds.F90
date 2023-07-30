@@ -1,4 +1,4 @@
-! > @file ftnutils_kinds.F90
+! > @file sorc/ftnutils/ftnutils_kinds.F90
 ! ! @details This module contains supported data types.
 ! ! @author Henry R. Winterbottom
 ! ! @date 03 July 2023

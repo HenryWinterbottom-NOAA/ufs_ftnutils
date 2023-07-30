@@ -1,4 +1,4 @@
-! > @file ftnutils_json.F90
+! > @file sorc/ftnutils/ftnutils_json.F90
 ! ! @details This module contains the base-class object for the JSON
 ! !          API.
 ! ! @author Henry R. Winterbottom

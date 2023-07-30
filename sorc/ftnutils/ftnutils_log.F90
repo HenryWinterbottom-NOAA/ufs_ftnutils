@@ -1,4 +1,4 @@
-! > @file ftnutils_log.F90
+! > @file sorc/ftnutils/ftnutils_log.F90
 ! ! @details This module contains the Logger object and associated
 ! !          methods and functions.
 ! ! @author Henry R. Winterbottom
