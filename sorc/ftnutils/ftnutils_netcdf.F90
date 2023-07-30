@@ -1,14 +1,14 @@
-!> @file: ftnutils_netcdf.F90
-!! @details: This module contains the base-class object for the netCDF
+!> @file ftnutils_netcdf.F90
+!! @details This module contains the base-class object for the netCDF
 !!           API.
-!! @author: Henry R. Winterbottom
-!! @date: 08 July 2023
-!! @version: 0.0.1
-!! @license: LGPL v2.1
+!! @author Henry R. Winterbottom
+!! @date 08 July 2023
+!! @version 0.0.1
+!! @license LGPL v2.1
 module ftnutils_netcdf
    use netcdf
    use ftnutils_errors, only: Error
-   use ftnutils_kinds, only: maxchar, rdouble, rsingle
+   use ftnutils_kinds, only: ilong, maxchar, rdouble, rsingle
    use ftnutils_log, only: Logger
    implicit none
    private
@@ -32,12 +32,16 @@ module ftnutils_netcdf
 
    interface ncwrite
       module procedure write_arr1d_double
+      module procedure write_arr1d_integer
       module procedure write_arr1d_single
       module procedure write_arr2d_double
+      module procedure write_arr2d_integer
       module procedure write_arr2d_single
       module procedure write_arr3d_double
+      module procedure write_arr3d_integer
       module procedure write_arr3d_single
       module procedure write_scalar_double
+      module procedure write_scalar_integer
       module procedure write_scalar_single
    end interface ncwrite
 
@@ -47,10 +51,10 @@ module ftnutils_netcdf
       logical :: read = .false.
       logical :: read_write = .false.
       logical :: write = .false.
-      integer :: ncdimid
-      integer :: ncfileid
-      integer :: ncvarid
-      integer :: ncstatus
+      integer(ilong) :: ncdimid
+      integer(ilong) :: ncfileid
+      integer(ilong) :: ncvarid
+      integer(ilong) :: ncstatus
    contains
       procedure, public :: ncclose
       procedure, public :: ncopen
@@ -67,13 +71,13 @@ module ftnutils_netcdf
       integer, dimension(:), allocatable :: dimid
       integer, dimension(:), allocatable :: dtype
       integer, dimension(:), allocatable :: varid
-      integer :: nattrs
-      integer :: ndims
-      integer :: nvars
+      integer(ilong) :: nattrs
+      integer(ilong) :: ndims
+      integer(ilong) :: nvars
    end type ncvarinfo_struct
 contains
 
-   !> @brief: Destroys the `ncvarinfo_struct` variable.
+   !> @brief Destroys the `ncvarinfo_struct` variable.
    subroutine destroy_ncvarinfo(ncvarinfo)
       type(ncvarinfo_struct) :: ncvarinfo
 
@@ -87,7 +91,7 @@ contains
       if (allocated(ncvarinfo%varid)) deallocate (ncvarinfo%varid)
    end subroutine destroy_ncvarinfo
 
-   !> @brief: Initializes the `ncvarinfo_struct` variable.
+   !> @brief Initializes the `ncvarinfo_struct` variable.
    subroutine init_ncvarinfo(ncvarinfo)
       type(ncvarinfo_struct) :: ncvarinfo
 
@@ -102,10 +106,7 @@ contains
       if (.not. allocated(ncvarinfo%varid)) allocate (ncvarinfo%varid(ncvarinfo%nvars))
    end subroutine init_ncvarinfo
 
-   !> @brief: Closes an open netCDF file object.
-  !!
-  !! @params[inout]: this
-  !!    - The respective netCDF class.
+   !> @brief Closes an open netCDF file object.
    subroutine ncclose(this)
       class(ncdata), intent(inout) :: this
       character(len=maxchar) :: msg
@@ -114,17 +115,17 @@ contains
       if (this%ncstatus /= 0) call ncerror(nccls=this)
    end subroutine ncclose
 
-   !> @brief: Defines the integer dimension variable identification key
+   !> @brief Defines the integer dimension variable identification key
   !!         within an open netCDF-formatted file path.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: dimname
+  !! @params[in] dimname
   !!    - The netCDF dimension variable name.
    subroutine ncdimid(nccls, dimname)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: dimname
+      character(len=maxchar), intent(in) :: dimname
       character(len=maxchar) :: msg
 
       nccls%ncstatus = nf90_inq_dimid(nccls%ncfileid, trim(adjustl(dimname)), &
@@ -134,10 +135,10 @@ contains
 500   format("netCDF dimension variable", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
    end subroutine ncdimid
 
-   !> @brief: Raises an exception for errors encountered by the
+   !> @brief Raises an exception for errors encountered by the
   !!         respective netCDF class.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
    subroutine ncerror(nccls)
       class(ncdata), intent(in) :: nccls
@@ -149,10 +150,7 @@ contains
 500   format("NetCDF failed with error", 1x, a, 1x, ". Aborting!!!")
    end subroutine ncerror
 
-   !> @brief: Defines/opens a netCDF file object.
-  !!
-  !! @params[inout]: this
-  !!    - The respective netCDF class.
+   !> @brief Defines/opens a netCDF file object.
    subroutine ncopen(this)
       class(ncdata), intent(inout) :: this
       character(len=maxchar) :: filename
@@ -175,21 +173,21 @@ contains
       end if
    end subroutine ncopen
 
-   !> @brief: Reads dimension variable value.
+   !> @brief Reads dimension variable value.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: dimname
+  !! @params[in] dimname
   !!    - The netCDF dimension variable name.
   !!
-  !! @returns: dimval
+  !! @returns dimval
   !!    - The netCDF dimension variable value.
    subroutine ncreaddim(nccls, dimname, dimval)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: dimname
+      character(len=maxchar), intent(in) :: dimname
       character(len=maxchar) :: msg
-      integer, intent(out) :: dimval
+      integer(ilong), intent(out) :: dimval
 
       nccls%ncstatus = nf90_inq_dimid(nccls%ncfileid, trim(adjustl(dimname)), &
                                       nccls%ncdimid)
@@ -202,22 +200,22 @@ contains
 500   format("netCDF dimension", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
    end subroutine ncreaddim
 
-   !> @brief: Returns the number of dimensions for the specified
+   !> @brief Returns the number of dimensions for the specified
   !!         variable `varname`.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @returns: ndims
+  !! @returns ndims
   !!    - The number of dimensions for the specified variable
   !!      `varname`.
    subroutine ncvardims(nccls, varname, ndims)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      integer :: ndims
+      character(len=maxchar), intent(in) :: varname
+      integer(ilong), intent(out) :: ndims
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_inquire_variable(nccls%ncfileid, nccls%ncvarid, &
@@ -225,17 +223,17 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine ncvardims
 
-   !> @brief: Defines the integer variable identification key within an
+   !> @brief Defines the integer variable identification key within an
   !!         open netCDF-formatted file path.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
    subroutine ncvarid(nccls, varname)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       character(len=maxchar) :: msg
 
       nccls%ncstatus = nf90_inq_varid(nccls%ncfileid, trim(adjustl(varname)), &
@@ -246,19 +244,19 @@ contains
 500   format("netCDF variable", 1x, a, 1x, "has ID", 1x, i3, 1x, ".")
    end subroutine ncvarid
 
-   !> @brief: Writes the netCDF-formatted file path dimension and
-   !          variable attributes.
+   !> @brief Writes the netCDF-formatted file path dimension and
+   !         variable attributes.
    !!
-   !! @params[inout]: nccls
+   !! @params[inout] nccls
    !!    - An initialized netCDF object.
    !!
-   !! @params[in]: ncvarinfo
+   !! @params[in] ncvarinfo
    !!    - A `ncvarinfo_struct` variable.
    subroutine ncwritedef(nccls, ncvarinfo)
       class(ncdata), intent(inout) :: nccls
       type(ncvarinfo_struct) :: ncvarinfo
       character(len=maxchar) :: msg
-      integer :: i
+      integer(ilong) :: i
 
      !! Build the dimension attributes.
       do i = 1, ncvarinfo%ndims
@@ -282,19 +280,19 @@ contains
              "and variable ID", 1x, i3, 1x, ".")
    end subroutine ncwritedef
 
-   !> @brief: Read a double-precision 1-dimensional variable array.
+   !> @brief Read a double-precision 1-dimensional variable array.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @returns[out]: varrar
+  !! @returns[out] varrar
   !!    - The netCDF variable 1-dimensional array values.
    subroutine read_arr1d_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rdouble), dimension(:), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -302,22 +300,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_arr1d_double
 
-   !> @brief: Read a single-precision 1-dimensional variable array.
+   !> @brief Read a single-precision 1-dimensional variable array.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
-  !! @returns: varrar
+  !! @returns varrar
   !!    - The netCDF variable 1-dimensional array values.
    subroutine read_arr1d_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rsingle), dimension(:), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -325,22 +323,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_arr1d_single
 
-   !> @brief: Read a double-precision 2-dimensional variable array.
+   !> @brief Read a double-precision 2-dimensional variable array.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
-  !! @returns: varrar
+  !! @returns varrar
   !!    - The netCDF variable 2-dimensional array values.
    subroutine read_arr2d_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rdouble), dimension(:, :), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -348,22 +346,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_arr2d_double
 
-   !> @brief: Read a single-precision 2-dimensional variable array.
+   !> @brief Read a single-precision 2-dimensional variable array.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
   !! @returns: varrar
   !!    - The netCDF variable 2-dimensional array values.
    subroutine read_arr2d_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rsingle), dimension(:, :), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -371,22 +369,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_arr2d_single
 
-   !> @brief: Read a double-precision 3-dimensional variable array.
+   !> @brief Read a double-precision 3-dimensional variable array.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
-  !! @returns: varrar
+  !! @returns varrar
   !!    - The netCDF variable 3-dimensional array values.
    subroutine read_arr3d_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rdouble), dimension(:, :, :), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -394,22 +392,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_arr3d_double
 
-   !> @brief: Read a single-precision 3-dimensional variable array.
+   !> @brief Read a single-precision 3-dimensional variable array.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
-  !! @returns: varrar
+  !! @returns varrar
   !!    - The netCDF variable 3-dimensional array values.
    subroutine read_arr3d_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rsingle), dimension(:, :, :), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -417,22 +415,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_arr3d_single
 
-   !> @brief: Read a double-precision scalar variable.
+   !> @brief Read a double-precision scalar variable.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
-  !! @returns: varrar
+  !! @returns varrar
   !!    - The netCDF variable value(s).
    subroutine read_scalar_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rdouble), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -440,22 +438,22 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_scalar_double
 
-   !> @brief: Read a single-precision scalar variable.
+   !> @brief Read a single-precision scalar variable.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[inout]: vararr
+  !! @params[inout] vararr
   !!    - An initialized netCDF variable scalar/array.
   !!
-  !! @returns: varrar
+  !! @returns varrar
   !!    - The netCDF variable value(s).
    subroutine read_scalar_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
+      character(len=maxchar), intent(in) :: varname
       real(rsingle), intent(out) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
@@ -463,160 +461,242 @@ contains
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine read_scalar_single
 
-   !> @brief: Writes a double precision 1-dimensional array of values.
+   !> @brief Writes a double precision 1-dimensional array of values.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_arr1d_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rdouble), dimension(:) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rdouble), intent(in), dimension(:) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
-   end subroutine write_arr1d_double
+    end subroutine write_arr1d_double
 
-   !> @brief: Writes a single precision 1-dimensional array of values.
+   !> @brief Writes an integer-type 1-dimensional array of values.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
+  !!    - The netCDF variable scalar/array.
+    subroutine write_arr1d_integer(nccls, varname, vararr)
+      class(ncdata), intent(inout) :: nccls
+      character(len=maxchar), intent(in) :: varname
+      integer(ilong), intent(in), dimension(:) :: vararr
+
+      call ncvarid(nccls=nccls, varname=varname)
+      nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+      if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+    end subroutine write_arr1d_integer
+
+   !> @brief Writes a single precision 1-dimensional array of values.
+  !!
+  !! @params[inout] nccls
+  !!    - An initialized netCDF object.
+  !!
+  !! @params[in] varname
+  !!    - The netCDF variable name.
+  !!
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_arr1d_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rsingle), dimension(:) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rsingle), intent(in), dimension(:) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine write_arr1d_single
 
-   !> @brief: Writes a double precision 2-dimensional array of values.
+   !> @brief Writes a double precision 2-dimensional array of values.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_arr2d_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rdouble), dimension(:, :) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rdouble), intent(in), dimension(:, :) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
-   end subroutine write_arr2d_double
+    end subroutine write_arr2d_double
 
-   !> @brief: Writes a single precision 2-dimensional array of values.
+   !> @brief Writes an integer-type 2-dimensional array of values.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
+  !!    - The netCDF variable scalar/array.
+   subroutine write_arr2d_integer(nccls, varname, vararr)
+      class(ncdata), intent(inout) :: nccls
+      character(len=maxchar), intent(in) :: varname
+      integer(ilong), intent(in), dimension(:, :) :: vararr
+
+      call ncvarid(nccls=nccls, varname=varname)
+      nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+      if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+    end subroutine write_arr2d_integer
+    
+
+   !> @brief Writes a single precision 2-dimensional array of values.
+  !!
+  !! @params[inout] nccls
+  !!    - An initialized netCDF object.
+  !!
+  !! @params[in] varname
+  !!    - The netCDF variable name.
+  !!
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_arr2d_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rsingle), dimension(:, :) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rsingle), intent(in), dimension(:, :) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine write_arr2d_single
 
-   !> @brief: Writes a double precision 3-dimensional array of values.
+   !> @brief Writes a double precision 3-dimensional array of values.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_arr3d_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rdouble), dimension(:, :, :) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rdouble), intent(in), dimension(:, :, :) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
-   end subroutine write_arr3d_double
+    end subroutine write_arr3d_double
 
-   !> @brief: Writes a single precision 3-dimensional array of values.
+
+   !> @brief Writes an integer-type 3-dimensional array of values.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
+  !!    - The netCDF variable scalar/array.
+   subroutine write_arr3d_integer(nccls, varname, vararr)
+      class(ncdata), intent(inout) :: nccls
+      character(len=maxchar), intent(in) :: varname
+      integer(ilong), intent(in), dimension(:, :, :) :: vararr
+
+      call ncvarid(nccls=nccls, varname=varname)
+      nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+      if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+    end subroutine write_arr3d_integer
+
+   !> @brief Writes a single precision 3-dimensional array of values.
+  !!
+  !! @params[inout] nccls
+  !!    - An initialized netCDF object.
+  !!
+  !! @params[in] varname
+  !!    - The netCDF variable name.
+  !!
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_arr3d_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rsingle), dimension(:, :, :) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rsingle), intent(in), dimension(:, :, :) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
    end subroutine write_arr3d_single
 
-   !> @brief: Writes a double-precision scalar variable.
+   !> @brief Writes a double-precision scalar variable.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout] nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_scalar_double(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rdouble) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rdouble), intent(in) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
       if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
-   end subroutine write_scalar_double
+    end subroutine write_scalar_double
 
-   !> @brief: Writes a double-precision scalar variable.
+   !> @brief Writes an integer-type scalar variable.
   !!
-  !! @params[inout]: nccls
+  !! @params[inout]0 nccls
   !!    - An initialized netCDF object.
   !!
-  !! @params[in]: varname
+  !! @params[in] varname
   !!    - The netCDF variable name.
   !!
-  !! @params[in]: vararr
+  !! @params[in] vararr
+  !!    - The netCDF variable scalar/array.
+   subroutine write_scalar_integer(nccls, varname, vararr)
+      class(ncdata), intent(inout) :: nccls
+      character(len=maxchar), intent(in) :: varname
+      integer(ilong), intent(in) :: vararr
+
+      call ncvarid(nccls=nccls, varname=varname)
+      nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
+      if (nccls%ncstatus /= 0) call ncerror(nccls=nccls)
+    end subroutine write_scalar_integer
+
+   !> @brief Writes a double-precision scalar variable.
+  !!
+  !! @params[inout] nccls
+  !!    - An initialized netCDF object.
+  !!
+  !! @params[in] varname
+  !!    - The netCDF variable name.
+  !!
+  !! @params[in] vararr
   !!    - The netCDF variable scalar/array.
    subroutine write_scalar_single(nccls, varname, vararr)
       class(ncdata), intent(inout) :: nccls
-      character(len=maxchar) :: varname
-      real(rsingle) :: vararr
+      character(len=maxchar), intent(in) :: varname
+      real(rsingle), intent(in) :: vararr
 
       call ncvarid(nccls=nccls, varname=varname)
       nccls%ncstatus = nf90_put_var(nccls%ncfileid, nccls%ncvarid, vararr)
